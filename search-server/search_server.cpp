@@ -119,15 +119,19 @@ private:
         return query;
     }
 
+    double CalculateIDF (const string plus_word) const{
+        double idf = log(static_cast<double>(document_count_)/static_cast<double>(word_to_document_freqs_.at(plus_word).size()));
+        return idf;
+    }
+
     vector<Document> FindAllDocuments(const Query& query_words) const {
         vector<Document> matched_documents;
         map<int,double> id_relevance;
         double idf;
         vector<int> documents_to_delete;
-        
         for (const auto& plus_word : query_words.plus_words){
             if(word_to_document_freqs_.count(plus_word)>0){
-               idf = log(static_cast<double>(document_count_)/static_cast<double>(word_to_document_freqs_.at(plus_word).size()));
+               idf = CalculateIDF(plus_word);
             } else {
             continue;
             }    
