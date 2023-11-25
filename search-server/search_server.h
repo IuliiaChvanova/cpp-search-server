@@ -23,12 +23,7 @@ public:
    // inline static constexpr int INVALID_DOCUMENT_ID = -1;
     
     template <typename StringContainer>
-    explicit SearchServer(const StringContainer& stop_words) : stop_words_(MakeUniqueNonEmptyStrings(stop_words)) {
-        bool valid_word = all_of(stop_words_.begin(), stop_words_.end(), [](std::string word){return IsValidWord(word); });
-        if (!valid_word){
-          throw std::invalid_argument("Строка содержит недопустимые символы с кодами от 0 до 31");
-        }
-    }
+    explicit SearchServer(const StringContainer& stop_words);
 
     explicit SearchServer(const std::string& stop_words_text)
         : SearchServer(
@@ -40,24 +35,7 @@ public:
 
     template <typename DocumentPredicate>
     std::vector<Document> FindTopDocuments(const std::string& raw_query,
-                                      DocumentPredicate document_predicate) const {
-        const Query query = ParseQuery(raw_query);
-        //isQueryCorrect(query);
-        
-        auto matched_documents = FindAllDocuments(query, document_predicate);
-        
-        sort(matched_documents.begin(), matched_documents.end(),
-             [](const Document& lhs, const Document& rhs) {
-                if (std::abs(lhs.relevance - rhs.relevance) < EPSILON) {
-                     return lhs.rating > rhs.rating;
-                 } 
-                return lhs.relevance > rhs.relevance;  
-             });
-        if (matched_documents.size() > MAX_RESULT_DOCUMENT_COUNT) {
-            matched_documents.resize(MAX_RESULT_DOCUMENT_COUNT);
-        }
-        return matched_documents;
-    }
+                                      DocumentPredicate document_predicate) const;
 
     std::vector<Document> FindTopDocuments(const std::string& raw_query, DocumentStatus status) const;
 
@@ -108,6 +86,43 @@ private:
 
     template <typename DocumentPredicate>
     std::vector<Document> FindAllDocuments(const Query& query,
+                                      DocumentPredicate document_predicate) const;
+};
+
+
+ template <typename StringContainer>
+    SearchServer::SearchServer(const StringContainer& stop_words) : stop_words_(MakeUniqueNonEmptyStrings(stop_words)) {
+        bool valid_word = all_of(stop_words_.begin(), stop_words_.end(), [](std::string word){return IsValidWord(word); });
+        if (!valid_word){
+          throw std::invalid_argument("Строка содержит недопустимые символы с кодами от 0 до 31");
+        }
+    }
+    
+
+template <typename DocumentPredicate>
+    std::vector<Document> SearchServer::FindTopDocuments(const std::string& raw_query,
+                                      DocumentPredicate document_predicate) const {
+        const Query query = ParseQuery(raw_query);
+        //isQueryCorrect(query);
+        
+        auto matched_documents = FindAllDocuments(query, document_predicate);
+        
+        sort(matched_documents.begin(), matched_documents.end(),
+             [](const Document& lhs, const Document& rhs) {
+                if (std::abs(lhs.relevance - rhs.relevance) < EPSILON) {
+                     return lhs.rating > rhs.rating;
+                 } 
+                return lhs.relevance > rhs.relevance;  
+             });
+        if (matched_documents.size() > MAX_RESULT_DOCUMENT_COUNT) {
+            matched_documents.resize(MAX_RESULT_DOCUMENT_COUNT);
+        }
+        return matched_documents;
+    }
+
+
+ template <typename DocumentPredicate>
+    std::vector<Document> SearchServer::FindAllDocuments(const Query& query,
                                       DocumentPredicate document_predicate) const {
         std::map<int, double> document_to_relevance;
         for (const std::string& word : query.plus_words) {
@@ -139,4 +154,3 @@ private:
         }
         return matched_documents;
     }
-};
